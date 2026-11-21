@@ -490,11 +490,15 @@ $("startBtn").addEventListener("click", async () => {
 async function enterFullscreen() {
   const el = document.body;
   try {
-    if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: "hide" });
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    let req;
+    if (el.requestFullscreen) req = el.requestFullscreen({ navigationUI: "hide" });
+    else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); req = Promise.resolve(); }
     else return false;
+    // Some embedded browsers never settle the request; don't hang the Start button.
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 3000));
+    await Promise.race([Promise.resolve(req), timeout]);
     return true;
-  } catch (e) { return false; }
+  } catch (e) { return isFullscreen(); }
 }
 const isFullscreen = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
 
